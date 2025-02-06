@@ -1,0 +1,45 @@
+---
+- name: Configurar cliente NFS y montar directorio en FrontEnd
+  hosts: frontend
+  become: yes
+
+  vars_files:
+    - ../vars/variables.yml
+
+  tasks:
+
+    # Actualizamos los repositorios para tener las últimas versiones de los paquetes
+    - name: Actualizar repositorios
+      apt:
+        update_cache: yes
+
+    # Instalamos el paquete necesario para que el sistema pueda actuar como cliente NFS
+    - name: Instalar NFS Common (cliente NFS)
+      apt:
+        name: nfs-common
+        state: present
+
+    # Creamos directorio donde montaré WordPress y le meto los permisos adecuados
+    - name: Crear directorio para montar WordPress si no existe
+      file:
+        path: "{{ wordpress.directory }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    # Montamos el directorio remoto de WordPress a través de NFS
+    - name: Montar el directorio WordPress desde el servidor NFS
+      command:
+        cmd: mount {{ nfsserver.server_ip }}:{{ wordpress.directory }} {{ wordpress.directory }}
+
+    # Verificamos que el montaje se realizó correctamente mostrando el uso de disco
+    - name: Verificar el espacio en disco tras el montaje
+      command: df -h
+
+    # Agregamos la entrada en /etc/fstab para que el montaje de NFS sea persistente aunque reinicie el sistema.
+    - name: Añadir la configuración de montaje en /etc/fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "{{ nfsserver.server_ip }}:{{ wordpress.directory }} {{ wordpress.directory }} nfs auto,nofail,noatime,nolock,intr,tcp,actimeo=1800 0 0"
+        state: present

@@ -1,0 +1,30 @@
+db:
+    frontend_private_ip: "172.31.%" 
+    BACKEND_PRIVATE_IP: "172.31.32.172"
+    name: wordpress
+    user: wordpress
+    password: password
+    
+certbot:
+    email: antoniofalso@gmail.com
+    domain: iawantonio.zapto.org
+
+wordpress:
+  directory: /var/www/html
+  domain: "https://iawantonio.zapto.org/"
+  title: "Mi Sitio WordPress"
+  admin_user: "admin"
+  admin_password: "password"
+  admin_email: "admin@example.com"
+  hide_login_url: "NADAIMPORTANTE"
+  locale: es_ES
+
+nfsserver: 
+    server_ip: "172.31.34.129"
+
+nfscliente:
+    client_ip: "172.31.0.0/16"
+
+balanceador:
+    IP_FRONTEND_1: "172.31.31.101"
+    IP_FRONTEND_2: "172.31.29.70"

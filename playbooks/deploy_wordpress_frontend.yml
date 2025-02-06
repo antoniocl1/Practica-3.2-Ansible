@@ -1,0 +1,142 @@
+---
+- name: Playbook para instalar la pila LAMP en el FrontEnd
+  hosts: frontend
+  become: yes
+
+  vars_files:
+    - ../vars/variables.yml
+
+  tasks:
+
+    # Eliminamos el directorio de instalación si existe
+    - name: Eliminar el directorio de instalación
+      file:
+        path: /usr/local/bin/wp/
+        state: absent
+
+    # Configuramos los permisos en el directorio donde voy a instalar de WP-CLI
+    - name: Configurar permisos de wp-cli
+      file:
+        path: /usr/local/bin/
+        owner: www-data
+        group: www-data
+        mode: 0755
+
+    # Descargamos WP-CLI para gestionar WordPress desde la terminal
+    - name: Descargar la utilidad WP-CLI
+      get_url:
+        url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+        dest: /usr/local/bin/wp
+        mode: 0755
+
+    # Eliminamos instalaciones previas de Wordpress en /var/www/html
+    - name: Eliminar instalaciones previas de WordPress
+      file:
+        path: /var/www/html
+        state: absent
+
+    # Modificamos los permisos del directorio de instalación de Wordpress
+    - name: Modificar permisos del directorio /var/www/html
+      file:
+        path: /var/www/html
+        owner: www-data
+        group: www-data
+        recurse: yes
+        mode: 0755
+
+    # Descargamos el código fuente de WordPress usando WP-CLI
+    - name: Descargar el código fuente de WordPress
+      command: 
+        wp core download \
+        --locale="{{ wordpress.locale }}" \
+        --path=/var/www/html \
+        --allow-root
+
+    # Eliminamos el archivo wp-config.php en caso de que exista
+    - name: Eliminar wp-config.php si existe
+      file:
+        path: /var/www/html/wp-config.php
+        state: absent
+
+    # Creamos el archivo de configuración de WordPress con los datos del archivo de variables
+    - name: Crear el archivo de configuración de WordPress
+      command: 
+        wp config create \
+        --dbname="{{ db.name }}" \
+        --dbuser="{{ db.user }}" \
+        --dbpass="{{ db.password }}" \
+        --dbhost={{ db.BACKEND_PRIVATE_IP }} \
+        --path={{ wordpress.directory }} \
+        --allow-root
+
+    # Instalamos WordPress con los datos del archivo de variables
+    - name: Instalar WordPress
+      command: 
+        wp core install \
+        --url="{{ wordpress.domain }}" \
+        --title="{{ wordpress.title }}" \
+        --admin_user="{{ wordpress.admin_user }}" \
+        --admin_password="{{ wordpress.admin_password }}" \
+        --admin_email="{{ wordpress.admin_email }}" \
+        --path="{{ wordpress.directory }}" \
+        --allow-root
+
+    # Cambiamos los permisos del directorio wp-content
+    - name: Configuramos permisos de wp-content
+      file:
+        path: /var/www/html/wp-content
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        recurse: yes
+
+    # Instalamos y activamos el tema de Mindscape para el WordPress
+    - name: Instalar y activar el tema Mindscape
+      command: 
+        wp theme install mindscape --activate \
+        --path={{ wordpress.directory }} \
+        --allow-root
+
+    # Instalamos y activamos el plugin wps-hide-login para proteger el acceso al panel de administración
+    - name: Instalar y activar el plugin wps-hide-login
+      command: 
+        wp plugin install wps-hide-login --activate \
+        --path={{ wordpress.directory }} \
+        --allow-root
+
+    # Configuramos la URL de acceso oculta mediante wps-hide-login con los datos del archivo de variables
+    - name: Configurar el plugin wps-hide-login
+      command: 
+        wp option update whl_page {{ wordpress.hide_login_url }} \
+        --path={{ wordpress.directory }} \
+        --allow-root
+
+    # Configuramos los enlaces permanentes para la estructura de URLs
+    - name: Configurar los enlaces permanentes
+      command: 
+        wp rewrite structure '/%postname%/' \
+        --path={{ wordpress.directory }} \
+        --allow-root
+
+    # Copiamos el archivo .htaccess al directorio de WordPress
+    - name: Copiar el archivo .htaccess al directorio de WordPress
+      copy:
+        src: ../htaccess/.htaccess
+        dest: "{{ wordpress.directory }}/.htaccess"
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    # Nos aseguramos de que la variable $_SERVER['HTTPS'] esté en el archivo wp-config.php
+    - name: Asegurar que $_SERVER['HTTPS'] esté en wp-config.php
+      lineinfile:
+        path: /var/www/html/wp-config.php
+        line: "$_SERVER['HTTPS'] = 'on';"
+        state: present
+        insertafter: "/* The name of the database for WordPress */"
+
+    # Reiniciamos Apache para aplicar los cambios
+    - name: Reiniciar el servidor web Apache
+      service:
+        name: apache2
+        state: restarted

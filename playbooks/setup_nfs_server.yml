@@ -1,0 +1,65 @@
+---
+- name: Configurar servidor NFS para WordPress
+  hosts: nfs
+  become: yes
+
+  vars_files:
+    - ../vars/variables.yml
+
+  tasks:
+
+    # Actualizamos los repositorios para tener las últimas versiones de los paquetes
+    - name: Actualizar repositorios
+      apt:
+        update_cache: yes
+
+    # Instalamos NFS Kernel Server para compartir directorios 
+    - name: Instalar NFS Kernel Server
+      apt:
+        name: nfs-kernel-server
+        state: present
+
+    # Creamos el directorio donde se almacenarán los archivos de WordPress
+    - name: Crear el directorio para WordPress
+      file:
+        path: /var/www/html
+        state: directory
+        owner: nobody  # (nobody es el Usuario por defecto en NFS)
+        group: nogroup
+        mode: '0755'
+
+    # Copiamos mi archivo de exports de NFS a su directorio
+    - name: Copiar el archivo exports
+      copy:
+        src: ../exports  
+        dest: /etc/exports
+        mode: '0644'
+
+    # Reemplazamos la IP del cliente en el archivo /etc/exports para permitirle acceso
+    - name: Reemplazar CLIENT_IP en /etc/exports
+      replace:
+        path: /etc/exports
+        regexp: "nfscliente.client_ip"
+        replace: "{{ nfscliente.client_ip }}"
+
+    # Nos aseguramos de que la ruta exportada en /etc/exports sea la correcta
+    - name: Reemplazar WORDPRESS_DIRECTORY en /etc/exports
+      replace:
+        path: /etc/exports
+        regexp: "/var/www/html"
+        replace: "/var/www/html"  # Quizás esto es redundante pero lo dejo por ahora.
+
+    # Modificamos los permisos del directorio para que WordPress pueda escribir en él
+    - name: Modificar permisos del directorio /var/www/html
+      file:
+        path: /var/www/html
+        owner: www-data 
+        group: www-data
+        recurse: yes
+        mode: '0755'
+
+    # Reiniciamos el servidor NFS para aplicar los cambios
+    - name: Reiniciar el servidor NFS
+      service:
+        name: nfs-kernel-server
+        state: restarted

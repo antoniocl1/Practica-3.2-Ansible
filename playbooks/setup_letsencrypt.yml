@@ -1,0 +1,32 @@
+---
+- name: Playbook para configurar HTTPS en el balanceador de carga
+  hosts: balanceador
+  become: yes
+
+  vars_files:
+    - ../vars/variables.yml
+
+  tasks:
+
+    # Actualizamos los repositorios para tener las últimas versiones de los paquetes
+    - name: Actualizar la lista de paquetes
+      apt:
+        update_cache: yes
+
+    # Eliminamos cualquier versión previa de Certbot 
+    - name: Desinstalar instalaciones previas de Certbot en caso de que existan
+      apt:
+        name: certbot
+        state: absent
+
+    # Instalamos Certbot con snap
+    - name: Instalar Certbot con Snap
+      snap:
+        name: certbot
+        classic: yes
+        state: present
+
+    # Solicitamos y configuramos automáticamente el certificado SSL mi dominio
+    - name: Solicitar y configurar certificado con Cerbot con Nginx
+      command:
+        cmd: certbot --nginx -m {{ certbot.email }} --agree-tos --no-eff-email -d {{ certbot.domain }} --non-interactive

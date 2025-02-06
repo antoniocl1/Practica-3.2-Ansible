@@ -1,0 +1,55 @@
+---
+- name: Playbook para instalar la pila LAMP en el FrontEnd
+  hosts: frontend
+  become: yes
+
+  tasks:
+
+    # Actualizamos los repositorios para tener las últimas versiones de los paquetes
+    - name: Actualizar los repositorios
+      apt:
+        update_cache: yes
+
+    # Instalamos Apache
+    - name: Instalar el servidor web Apache
+      apt:
+        name: apache2
+        state: present
+
+    # Habilitamos el módulo rewrite de Apache para permitir la reescritura de URLs
+    - name: Habilitar el módulo rewrite de Apache
+      apache2_module:
+        name: rewrite
+        state: present
+
+    # Copiamos el archivo de configuración de Apache desde mis plantillas
+    - name: Copiar el archivo de configuración de Apache
+      copy:
+        src: ../templates/000-default.conf
+        dest: /etc/apache2/sites-available/
+        mode: 0755
+
+    # Instalamos PHP y los módulos necesarios para ejecutar WordPress o Moodle
+    - name: Instalar PHP y los módulos necesarios
+      apt: 
+        name: 
+          - php
+          - libapache2-mod-php
+          - php-mysql
+          - php-xml
+          - php-mbstring
+          - php-curl
+          - php-zip
+          - php-gd
+          - php-intl
+          - php-soap
+          - php-ldap
+          - php-opcache
+          - php-cli
+        state: present
+
+    # Reiniciamos Apache para aplicar los cambios de configuración
+    - name: Reiniciar el servidor web Apache
+      service:
+        name: apache2
+        state: restarted

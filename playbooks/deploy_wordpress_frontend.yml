@@ -31,7 +31,9 @@
 
     # Eliminamos instalaciones previas de Wordpress en /var/www/html
     - name: Eliminar instalaciones previas de WordPress
-      command: rm -rf /var/www/html/*
+      file:
+        path: /var/www/html/*
+        state: absent
       
     # Modificamos los permisos del directorio de instalación de Wordpress
     - name: Modificar permisos del directorio /var/www/html

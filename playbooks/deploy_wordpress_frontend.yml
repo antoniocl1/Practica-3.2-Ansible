@@ -30,11 +30,9 @@
         mode: 0755
 
     # Eliminamos instalaciones previas de Wordpress en /var/www/html
-    # - name: Eliminar instalaciones previas de WordPress
-      # file:
-        # path: /var/www/html/
-        # state: absent
-
+    - name: Eliminar instalaciones previas de WordPress
+      command: rm -rf /var/www/html/*
+      
     # Modificamos los permisos del directorio de instalación de Wordpress
     - name: Modificar permisos del directorio /var/www/html
       file:
@@ -81,10 +79,28 @@
         --path="{{ wordpress.directory }}" \
         --allow-root
 
-    # Cambiamos los permisos del directorio wp-content
+    # Cambiamos los permisos del directorio /var/www/html
+    - name: Configuramos permisos de /var/www/html
+      file:
+        path: /var/www/html
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        recurse: yes
+
+    # Cambiamos los permisos del directorio /wp-content/upgrade
     - name: Configuramos permisos de wp-content
       file:
-        path: /var/www/html/wp-content
+        path: /var/www/html/wp-content/upgrade
+        owner: www-data
+        group: www-data
+        mode: '0755'
+        recurse: yes
+
+    # Cambiamos los permisos del directorio /wp-content/plugins
+    - name: Configuramos permisos de wp-content
+      file:
+        path: /var/www/html/wp-content/plugins
         owner: www-data
         group: www-data
         mode: '0755'

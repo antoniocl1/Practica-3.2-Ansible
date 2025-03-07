@@ -121,6 +121,9 @@ wp plugin activate plugin-name --path=/var/www/html --allow-root
 ---
 
 ## Comprobaciones
+
+### Salida de los playbooks de Ansible
+![Instalación de Plugins](salida3-2.png)
 ### Instalación de Plugins
 ![Instalación de Plugins](plugin.png)
 
